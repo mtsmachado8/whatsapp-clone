@@ -34,20 +34,7 @@ export function Menu({ activeTab, onTabChange }: MenuProps) {
               <span className="text-xs text-white font-bold">5</span>
             </div>
           </div>
-
-          {/* AI Agents */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onTabChange("agents")}
-            className={`w-12 h-12 rounded-lg ${
-              activeTab === "agents"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            <Bot className="h-6 w-6" />
-          </Button>
+          
         </div>
 
         {/* Spacer */}
@@ -96,20 +83,6 @@ export function Menu({ activeTab, onTabChange }: MenuProps) {
               <span className="text-xs text-white font-bold">5</span>
             </div>
           </div>
-
-          {/* AI Agents */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onTabChange("agents")}
-            className={`w-12 h-12 rounded-lg ${
-              activeTab === "agents"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text hover:bg-gray-200 dark:hover:bg-gray-700"
-            }`}
-          >
-            <Bot className="h-6 w-6" />
-          </Button>
 
           {/* Settings */}
           <Button
