@@ -1,0 +1,50 @@
+import type { Contact } from "@/types"
+
+export const contacts: Contact[] = [
+  {
+    id: "1",
+    name: "Maria Silva",
+    avatar: "/placeholder.svg?height=40&width=40&text=MS",
+    lastMessage: "Olá! Gostaria de saber mais sobre seus produtos",
+    time: "14:30",
+    unread: 2,
+    online: true,
+  },
+  {
+    id: "2",
+    name: "João Santos",
+    avatar: "/placeholder.svg?height=40&width=40&text=JS",
+    lastMessage: "Obrigado pelo atendimento!",
+    time: "13:45",
+    unread: 0,
+    online: false,
+  },
+  {
+    id: "3",
+    name: "Ana Costa",
+    avatar: "/placeholder.svg?height=40&width=40&text=AC",
+    lastMessage: "Quando vocês abrem amanhã?",
+    time: "12:20",
+    unread: 1,
+    online: true,
+    typing: true,
+  },
+  {
+    id: "4",
+    name: "Pedro Lima",
+    avatar: "/placeholder.svg?height=40&width=40&text=PL",
+    lastMessage: "Perfeito! Vou passar aí hoje",
+    time: "11:15",
+    unread: 0,
+    online: false,
+  },
+  {
+    id: "5",
+    name: "Carla Mendes",
+    avatar: "/placeholder.svg?height=40&width=40&text=CM",
+    lastMessage: "Vocês fazem entrega?",
+    time: "10:30",
+    unread: 3,
+    online: true,
+  },
+]
