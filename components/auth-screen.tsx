@@ -23,6 +23,7 @@ export function AuthScreen({ onAuthenticated }: AuthScreenProps) {
       }
     }
   }, []);
+  
   useEffect(() => {
     const fetchQRCode = async () => {
       try {

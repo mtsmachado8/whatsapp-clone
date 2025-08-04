@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
-import { Search, MoreVertical, Download, Archive } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { useEffect, useState } from "react";
+import { Search, MoreVertical, Download, Archive } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -12,37 +13,39 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Check } from "lucide-react"
+} from "@/components/ui/dialog";
+import { Check } from "lucide-react";
+import { useFindChats } from "@/hooks/use-find-chats";
 
 interface Contact {
-  id: string
-  name: string
-  avatar: string
-  lastMessage: string
-  time: string
-  unread: number
-  online: boolean
-  typing?: boolean
+  id: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  online: boolean;
+  typing?: boolean;
 }
 
-type FilterType = "all" | "unread" | "favorites" | "groups"
+type FilterType = "all" | "unread" | "favorites" | "groups";
 
 interface ContactsListProps {
-  contacts: Contact[]
-  selectedContact: Contact | null
-  searchText: string
-  onSearchChange: (value: string) => void
-  onContactSelect: (contact: Contact) => void
-  onDownload: () => void
-  showDownloadDialog: boolean
-  onDownloadDialogChange: (open: boolean) => void
-  isInstallable: boolean
-  isInstalled: boolean
-  installApp: () => Promise<boolean>
-  getInstallInstructions: () => { browser: string; steps: string[] }
-  filter: FilterType
-  onFilterChange: (filter: FilterType) => void
+  contacts: Contact[];
+  selectedContact: Contact | null;
+  searchText: string;
+  onSearchChange: (value: string) => void;
+  onContactSelect: (contact: Contact) => void;
+  onDownload: () => void;
+  showDownloadDialog: boolean;
+  onDownloadDialogChange: (open: boolean) => void;
+  isInstallable: boolean;
+  isInstalled: boolean;
+  installApp: () => Promise<boolean>;
+  getInstallInstructions: () => { browser: string; steps: string[] };
+  filter: FilterType;
+  onFilterChange: (filter: FilterType) => void;
+  instanceId: string; // Adicionado para usar o hook useFindChats
 }
 
 export function ContactsList({
@@ -60,7 +63,46 @@ export function ContactsList({
   getInstallInstructions,
   filter,
   onFilterChange,
+  instanceId,
 }: ContactsListProps) {
+  const { chats, messages, loading, error, findChats, findMessages } = useFindChats();
+  const [selectedChat, setSelectedChat] = useState<string | null>(null);
+
+  const [instanceName, setInstanceName] = useState<string | null>(null);
+
+  // Recupera o instanceName do Local Storage apenas no cliente
+  useEffect(() => {
+  if (typeof window !== "undefined") {
+    const storedInstanceName = localStorage.getItem("instanceName");
+    if (storedInstanceName) {
+      setInstanceName(storedInstanceName);
+    } else {
+      console.error("InstanceName não encontrado no localStorage.");
+    }
+  }
+}, []);
+
+  useEffect(() => {
+    if (instanceName) {
+      findChats(instanceName); // Busca as conversas apenas se o instanceName estiver definido
+    }
+  }, [instanceName, findChats]);
+
+  useEffect(() => {
+  const fetchMessagesForChats = async () => {
+    if (!instanceName || chats.length === 0) {
+      return;
+    }
+
+    // Busca as mensagens para todas as conversas em paralelo
+    await Promise.all(
+      chats.map((chat) => findMessages(instanceName, chat.remoteJid))
+    );
+  };
+
+  fetchMessagesForChats();
+}, [instanceName, chats, findMessages]);
+  console.log("Estado de mensagens:", messages);
   return (
     <div className="h-full whatsapp-sidebar flex flex-col border-r whatsapp-border">
       {/* Header da Sidebar */}
@@ -85,15 +127,15 @@ export function ContactsList({
                     {isInstalled
                       ? "App Instalado"
                       : isInstallable
-                        ? "Instalar WhatsApp Business"
-                        : "Baixar WhatsApp Business"}
+                      ? "Instalar WhatsApp Business"
+                      : "Baixar WhatsApp Business"}
                   </DialogTitle>
                   <DialogDescription>
                     {isInstalled
                       ? "O WhatsApp Business já está instalado no seu dispositivo!"
                       : isInstallable
-                        ? "Instale nosso aplicativo para ter acesso rápido e funcionalidades offline."
-                        : "Instale nosso aplicativo como um web-app para melhor experiência."}
+                      ? "Instale nosso aplicativo para ter acesso rápido e funcionalidades offline."
+                      : "Instale nosso aplicativo como um web-app para melhor experiência."}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -110,8 +152,8 @@ export function ContactsList({
                   <div className="flex flex-col space-y-3">
                     <Button
                       onClick={async () => {
-                        const success = await installApp()
-                        if (success) onDownloadDialogChange(false)
+                        const success = await installApp();
+                        if (success) onDownloadDialogChange(false);
                       }}
                       className="w-full bg-green-600 hover:bg-green-700"
                     >
@@ -181,119 +223,63 @@ export function ContactsList({
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="px-4 pb-2">
-        <div className="flex space-x-2">
-          <Button
-            variant={filter === "all" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onFilterChange("all")}
-            className={`rounded-full text-xs ${
-              filter === "all"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text-secondary hover:bg-white/10"
-            }`}
-          >
-            Tudo
-          </Button>
-          <Button
-            variant={filter === "unread" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onFilterChange("unread")}
-            className={`rounded-full text-xs ${
-              filter === "unread"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text-secondary hover:bg-white/10"
-            }`}
-          >
-            Não lidas
-          </Button>
-          <Button
-            variant={filter === "favorites" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onFilterChange("favorites")}
-            className={`rounded-full text-xs ${
-              filter === "favorites"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text-secondary hover:bg-white/10"
-            }`}
-          >
-            Favoritas
-          </Button>
-          <Button
-            variant={filter === "groups" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => onFilterChange("groups")}
-            className={`rounded-full text-xs ${
-              filter === "groups"
-                ? "bg-green-600 text-white hover:bg-green-700"
-                : "whatsapp-text-secondary hover:bg-white/10"
-            }`}
-          >
-            Grupos
-          </Button>
-        </div>
-      </div>
-
-      {/* Arquivadas */}
-      <div className="px-4 py-2">
-        <div className="flex items-center p-3 whatsapp-hover rounded-lg cursor-pointer">
-          <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mr-3">
-            <Archive className="h-5 w-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium whatsapp-text">Arquivadas</span>
-              <span className="text-xs whatsapp-text-secondary">26</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Lista de Conversas */}
       <ScrollArea className="flex-1">
-        {contacts.map((contact) => (
-          <div
-            key={contact.id}
-            onClick={() => onContactSelect(contact)}
-            className={`flex items-center p-3 md:p-4 whatsapp-hover cursor-pointer ${
-              selectedContact?.id === contact.id ? "bg-gray-200 dark:bg-gray-700" : ""
-            }`}
-          >
-            <div className="relative">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={contact.avatar || "/placeholder.svg"} alt={contact.name} />
-                <AvatarFallback>
-                  {contact.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-              {contact.online && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-              )}
-            </div>
+        {loading ? (
+          <p className="text-center text-white">Carregando conversas...</p>
+        ) : error ? (
+          <p className="text-center text-red-500">{error}</p>
+        ) : (
+          chats.map((chat) => (
+            <div
+              key={chat.id}
+              //onClick={() => handleChatClick(chat.remoteJid)}
+              className={`flex items-center p-3 md:p-4 whatsapp-hover cursor-pointer ${
+                selectedChat === chat.remoteJid ? "bg-gray-200 dark:bg-gray-700" : ""
+              }`}
+            >
+              <div className="relative">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={chat.profilePicUrl || "/placeholder.svg"} alt={chat.pushName || chat.remoteJid} />
+                  <AvatarFallback>
+                    {chat.pushName
+                      ? chat.pushName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                      : chat.remoteJid[0]}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
 
-            <div className="ml-3 flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium whatsapp-text truncate">{contact.name}</h3>
-                <span className="text-xs whatsapp-text-secondary">{contact.time}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <p className="text-sm whatsapp-text-secondary truncate">
-                  {contact.typing ? <span className="text-green-600 italic">digitando...</span> : contact.lastMessage}
-                </p>
-                {contact.unread > 0 && (
-                  <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-green-600 rounded-full min-w-[20px]">
-                    {contact.unread}
+              <div className="ml-3 flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium whatsapp-text truncate">
+                    {chat.pushName || chat.remoteJid.split("@")[0]}
+                  </h3>
+                  <span className="text-xs whatsapp-text-secondary">
+                    {new Date(chat.updatedAt).toLocaleTimeString()}
                   </span>
-                )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm whatsapp-text-secondary truncate">
+                    {(() => {
+                      const lastMessage = messages
+                        .filter((message) => message.key.remoteJid === chat.remoteJid)
+                        .sort((a, b) => b.messageTimestamp - a.messageTimestamp) // Ordena por timestamp
+                        .at(0); // Pega a última mensagem
+
+                      return lastMessage?.message.conversation
+                        ? lastMessage.message.conversation.slice(0, 20)
+                        : "Sem mensagens";
+                    })()}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </ScrollArea>
     </div>
-  )
+  );
 }
