@@ -17,8 +17,30 @@ import {
 import { Check } from "lucide-react";
 import { useFindChats } from "@/hooks/use-find-chats";
 
+interface Message {
+  id: string;
+  key: {
+    id: string;
+    fromMe: boolean;
+    remoteJid: string;
+  };
+  pushName: string;
+  messageType: string;
+  message: {
+    conversation: string;
+  };
+  messageTimestamp: number;
+  instanceId?: string;
+  source?: string;
+  contextInfo?: any;
+  MessageUpdate?: Array<{
+    status: string;
+  }>;
+}
+
 interface Contact {
   id: string;
+  remoteJid: string; // Adicionado para compatibilidade com Chat
   name: string;
   avatar: string;
   lastMessage: string;
@@ -26,6 +48,10 @@ interface Contact {
   unread: number;
   online: boolean;
   typing?: boolean;
+  profilePicUrl?: string; // Adicionado para compatibilidade com Chat
+  pushName?: string; // Adicionado para compatibilidade com Chat
+  updatedAt?: string; // Adicionado para compatibilidade com Chat
+  messages: Message[];
 }
 
 type FilterType = "all" | "unread" | "favorites" | "groups";
@@ -65,10 +91,10 @@ export function ContactsList({
   onFilterChange,
   instanceId,
 }: ContactsListProps) {
-  const { chats, messages, loading, error, findChats, findMessages } = useFindChats();
+  const { chats, messages, loading, error, findChats, findMessages, findMessagesForChats } = useFindChats();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
-  const [messagesLoading, setMessagesLoading] = useState<boolean>(false); // Novo estado
-
+  //const [messagesLoading, setMessagesLoading] = useState<boolean>(false); // Novo estado
+  //const [chats, setChats] = useState<any[]>([]); // Inicialize o estado dos chats como um array vazio
   const [instanceName, setInstanceName] = useState<string | null>(null);
 
  // Recupera o instanceName do Local Storage apenas no cliente
@@ -89,30 +115,13 @@ export function ContactsList({
     }
   }, [instanceName, findChats]);
 
-  useEffect(() => {
-    const fetchMessagesForChats = async () => {
-      if (!instanceName || chats.length === 0) {
-        return;
-      }
+useEffect(() => {
+  if (instanceName) {
+    findMessagesForChats(instanceName);
+  }
+}, [instanceName, findMessagesForChats]);
 
-      setMessagesLoading(true); // Inicia o carregamento das mensagens
-
-      try {
-        // Busca as mensagens para todas as conversas em paralelo
-        await Promise.all(
-          chats.map((chat) => findMessages(instanceName, chat.remoteJid))
-        );
-      } catch (error) {
-        console.error("Erro ao buscar mensagens:", error);
-      } finally {
-        setMessagesLoading(false); // Finaliza o carregamento das mensagens
-      }
-    };
-
-    fetchMessagesForChats();
-  }, [instanceName, chats, findMessages]);
-
-  console.log("Estado de mensagens:", messages);
+  //console.log("Estado de mensagens:", messages);
 
   return (
     <div className="h-full whatsapp-sidebar flex flex-col border-r whatsapp-border">
@@ -236,65 +245,77 @@ export function ContactsList({
 
       {/* Lista de Conversas */}
       <ScrollArea className="flex-1">
-        {loading ? (
-          <p className="text-center text-white">Carregando conversas...</p>
-        ) : error ? (
-          <p className="text-center text-red-500">{error}</p>
-        ) : (
-          chats.map((chat) => (
-            <div
-              key={chat.id}
-              //onClick={() => handleChatClick(chat.remoteJid)}
-              className={`flex items-center p-3 md:p-4 whatsapp-hover cursor-pointer ${
-                selectedChat === chat.remoteJid ? "bg-gray-200 dark:bg-gray-700" : ""
-              }`}
-            >
-              <div className="relative">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={chat.profilePicUrl || "/placeholder.svg"} alt={chat.pushName || chat.remoteJid} />
-                  <AvatarFallback>
-                    {chat.pushName
-                      ? chat.pushName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                      : chat.remoteJid[0]}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
+  {loading ? (
+    <p className="text-center text-white">Carregando conversas...</p>
+  ) : error ? (
+    <p className="text-center text-red-500">{error}</p>
+  ) : chats.length === 0 ? (
+    <p className="text-center text-white">Nenhuma conversa encontrada.</p>
+  ) : (
+    chats.map((chat) => (
+      <div
+        key={chat.id}
+        onClick={() => {
+          // Use as mensagens associadas ao chat
+          const chatMessages = chat.messages || [];
 
-              <div className="ml-3 flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium whatsapp-text truncate">
-                    {chat.pushName || chat.remoteJid.split("@")[0]}
-                  </h3>
-                  <span className="text-xs whatsapp-text-secondary">
-                    {new Date(chat.updatedAt).toLocaleTimeString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm whatsapp-text-secondary truncate">
-                    {(() => {
-                      const filteredMessages = messages.filter(
-                        (message) => message.key.remoteJid === chat.remoteJid
-                      );
-                      console.log(`Mensagens filtradas para ${chat.remoteJid}:`, filteredMessages);
-
-                      const lastMessage = filteredMessages
-                        .sort((a, b) => b.messageTimestamp - a.messageTimestamp)
-                        .at(0);
-
-                      return lastMessage?.message.conversation
-                        ? lastMessage.message.conversation.slice(0, 20)
-                        : "Sem mensagens";
-                    })()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </ScrollArea>
-    </div>
+          // Atualiza o estado do chat selecionado
+          setSelectedChat(chat.remoteJid);
+          console.log("Mensagens associadas ao chat selecionado:", chatMessages);
+          // Chama a função onContactSelect para passar os dados do contato selecionado
+          onContactSelect({
+            id: chat.id,
+            remoteJid: chat.remoteJid,
+            name: chat.pushName || chat.remoteJid.split("@")[0],
+            avatar: chat.profilePicUrl || "/placeholder.svg",
+            lastMessage: chat.lastMessage?.message.conversation || "",
+            time: new Date(chat.updatedAt).toLocaleTimeString(),
+            unread: 0,
+            online: false,
+            messages: chatMessages, // Passa as mensagens associadas ao chat
+          });
+        }}
+        className={`flex items-center p-3 md:p-4 whatsapp-hover cursor-pointer ${
+          selectedChat === chat.remoteJid ? "bg-gray-200 dark:bg-gray-700" : ""
+        }`}
+      >
+        <div className="relative">
+          <Avatar className="h-12 w-12">
+            <AvatarImage
+              src={chat.profilePicUrl || "/placeholder.svg"}
+              alt={chat.pushName || chat.remoteJid}
+            />
+            <AvatarFallback>
+              {chat.pushName
+                ? chat.pushName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                : chat.remoteJid[0]}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+        <div className="ml-3 flex-1 min-w-0">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium whatsapp-text truncate">
+              {chat.pushName || chat.remoteJid.split("@")[0]}
+            </h3>
+            <span className="text-xs whatsapp-text-secondary">
+              {new Date(chat.updatedAt).toLocaleTimeString()}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-sm whatsapp-text-secondary truncate">
+              {chat.lastMessage?.message.conversation
+                ? chat.lastMessage.message.conversation.slice(0, 20)
+                : "Sem mensagens"}
+            </p>
+          </div>
+        </div>
+      </div>
+    ))
+  )}
+</ScrollArea>
+  </div>
   );
 }

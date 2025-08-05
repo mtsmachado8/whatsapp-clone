@@ -1,44 +1,52 @@
-"use client"
+"use client";
 
-import { Phone, Video, Paperclip, Mic, Send, CheckCheck, ArrowLeft, MoreVertical, MessageCircle } from "lucide-react"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Check } from "lucide-react"
+import { Phone, Video, Paperclip, Mic, Send, CheckCheck, ArrowLeft, MoreVertical, MessageCircle } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Contact {
-  id: string
-  name: string
-  avatar: string
-  lastMessage: string
-  time: string
-  unread: number
-  online: boolean
-  typing?: boolean
+  id: string;
+  remoteJid: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  online: boolean;
+  typing?: boolean;
+  profilePicUrl?: string;
+  pushName?: string;
+  updatedAt?: string;
+  messages: Message[];
 }
 
 interface Message {
-  id: string
-  text: string
-  time: string
-  sent: boolean
-  read: boolean
-  delivered: boolean
+  id: string;
+  key: {
+    id: string;
+    fromMe: boolean;
+    remoteJid: string;
+  };
+  pushName: string;
+  messageType: string;
+  message: {
+    conversation: string;
+  };
+  messageTimestamp: number;
 }
 
 interface ChatAreaProps {
-  selectedContact: Contact | null
-  messages: Message[]
-  messageText: string
-  onMessageChange: (value: string) => void
-  onSendMessage: () => void
-  onBackToContacts: () => void
+  selectedContact: Contact | null;
+  messageText: string;
+  onMessageChange: (value: string) => void;
+  onSendMessage: () => void;
+  onBackToContacts: () => void;
 }
 
 export function ChatArea({
   selectedContact,
-  messages,
   messageText,
   onMessageChange,
   onSendMessage,
@@ -61,8 +69,14 @@ export function ChatArea({
           </p>
         </div>
       </div>
-    )
+    );
   }
+
+  // Use as mensagens associadas ao contato selecionado
+  const filteredMessages = selectedContact.messages || [];
+
+  console.log("selectedContact:", selectedContact);
+  console.log("filteredMessages:", filteredMessages);
 
   return (
     <div className="flex flex-col h-full whatsapp-chat-bg">
@@ -93,30 +107,6 @@ export function ChatArea({
             </p>
           </div>
         </div>
-
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="whatsapp-text hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-          >
-            <Phone className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="whatsapp-text hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-          >
-            <Video className="h-5 w-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="whatsapp-text hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-          >
-            <MoreVertical className="h-5 w-5" />
-          </Button>
-        </div>
       </div>
 
       {/* Área de Mensagens */}
@@ -124,33 +114,22 @@ export function ChatArea({
         <ScrollArea className="h-full chat-background">
           <div className="p-4 chat-messages">
             <div className="space-y-4">
-              {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.sent ? "justify-end" : "justify-start"}`}>
+              {filteredMessages.map((message) => (
+                <div key={message.id} className={`flex ${message.key.fromMe ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
-                      message.sent
+                      message.key.fromMe
                         ? "bg-green-500 text-white"
                         : "whatsapp-message-received whatsapp-text border whatsapp-border"
                     }`}
                   >
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-sm">{message.message.conversation}</p>
                     <div
                       className={`flex items-center justify-end mt-1 space-x-1 ${
-                        message.sent ? "text-green-100" : "whatsapp-text-secondary"
+                        message.key.fromMe ? "text-green-100" : "whatsapp-text-secondary"
                       }`}
                     >
-                      <span className="text-xs">{message.time}</span>
-                      {message.sent && (
-                        <div className="flex">
-                          {message.read ? (
-                            <CheckCheck className="h-3 w-3 text-blue-300" />
-                          ) : message.delivered ? (
-                            <CheckCheck className="h-3 w-3" />
-                          ) : (
-                            <Check className="h-3 w-3" />
-                          )}
-                        </div>
-                      )}
+                      <span className="text-xs">{new Date(message.messageTimestamp * 1000).toLocaleTimeString()}</span>
                     </div>
                   </div>
                 </div>
@@ -198,5 +177,5 @@ export function ChatArea({
         </div>
       </div>
     </div>
-  )
+  );
 }

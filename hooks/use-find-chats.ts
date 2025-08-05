@@ -13,6 +13,8 @@ interface Chat {
   windowStart: string;
   windowExpires: string;
   windowActive: boolean;
+  lastMessage?: Message; // Adicionada a propriedade opcional lastMessage
+  messages?: Message[];
 }
 
 interface Message {
@@ -37,10 +39,10 @@ interface Message {
 }
 
 export const useFindChats = () => {
-  const [chats, setChats] = useState<Chat[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [chats, setChats] = useState<Chat[]>([]); // Estado para armazenar as conversas
+  const [messages, setMessages] = useState<Message[]>([]); // Estado para armazenar mensagens
+  const [loading, setLoading] = useState<boolean>(false); // Estado de carregamento
+  const [error, setError] = useState<string | null>(null); // Estado para erros
 
   // Função para buscar as conversas
   const findChats = useCallback(async (instanceId: string) => {
@@ -107,6 +109,55 @@ export const useFindChats = () => {
     []
   );
 
+  // Função para buscar mensagens para todas as conversas
+  const findMessagesForChats = useCallback(
+  async (instanceId: string) => {
+    if (!instanceId || chats.length === 0) return;
+
+    try {
+      const updatedChats = await Promise.all(
+        chats.map(async (chat) => {
+          const response = await axios.post(
+            `${API_BASE_URL}/chat/findMessages/${instanceId}`,
+            {
+              where: {
+                key: {
+                  remoteJid: chat.remoteJid,
+                },
+              },
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+                apikey: API_KEY,
+              },
+            }
+          );
+
+          const messages = response.data.messages.records;
+          const lastMessage = messages
+            .sort(
+              (a?: Message, b?: Message) =>
+                (b?.messageTimestamp || 0) - (a?.messageTimestamp || 0)
+            )
+            .at(0);
+
+          return {
+            ...chat,
+            messages, // Associa as mensagens ao chat
+            lastMessage, // Adiciona a última mensagem ao objeto do chat
+          };
+        })
+      );
+      console.log("Chats atualizados com mensagens:", updatedChats);
+      setChats(updatedChats); // Atualiza o estado dos chats com as mensagens associadas
+    } catch (err) {
+      console.error("Erro ao buscar mensagens para os chats:", err);
+      setError("Erro ao buscar mensagens para os chats.");
+    }
+  },
+  [chats]
+);
   return {
     chats,
     messages,
@@ -114,5 +165,6 @@ export const useFindChats = () => {
     error,
     findChats,
     findMessages,
+    findMessagesForChats, // Certifique-se de retornar esta função
   };
 };
