@@ -10,6 +10,28 @@
 This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
 
+## Configuração
+
+### Variáveis de Ambiente
+
+Para configurar a aplicação, você precisa definir as seguintes variáveis de ambiente:
+
+1. Copie o arquivo `.env.example` para `.env.local`:
+```bash
+cp .env.example .env.local
+```
+
+2. Edite o arquivo `.env.local` com suas configurações:
+
+- `NEXT_PUBLIC_API_BASE_URL`: URL base da API Evolution
+- `NEXT_PUBLIC_API_KEY`: Chave de API para autenticação
+
+### Exemplo de configuração:
+```env
+NEXT_PUBLIC_API_BASE_URL=https://sua-api.com
+NEXT_PUBLIC_API_KEY=sua-chave-de-api
+```
+
 ## Deployment
 
 Your project is live at:

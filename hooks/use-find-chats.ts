@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import axios from "axios";
 
-const API_BASE_URL = "https://evolution-api-5ywd.onrender.com"; // Substitua pela URL correta da API
-const API_KEY = "impactA2023!"; // Substitua pela sua chave de API
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 
 interface Chat {
   id: string;
