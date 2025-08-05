@@ -67,20 +67,21 @@ export function ContactsList({
 }: ContactsListProps) {
   const { chats, messages, loading, error, findChats, findMessages } = useFindChats();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState<boolean>(false); // Novo estado
 
   const [instanceName, setInstanceName] = useState<string | null>(null);
 
-  // Recupera o instanceName do Local Storage apenas no cliente
+ // Recupera o instanceName do Local Storage apenas no cliente
   useEffect(() => {
-  if (typeof window !== "undefined") {
-    const storedInstanceName = localStorage.getItem("instanceName");
-    if (storedInstanceName) {
-      setInstanceName(storedInstanceName);
-    } else {
-      console.error("InstanceName não encontrado no localStorage.");
+    if (typeof window !== "undefined") {
+      const storedInstanceName = localStorage.getItem("instanceName");
+      if (storedInstanceName) {
+        setInstanceName(storedInstanceName);
+      } else {
+        console.error("InstanceName não encontrado no localStorage.");
+      }
     }
-  }
-}, []);
+  }, []);
 
   useEffect(() => {
     if (instanceName) {
@@ -89,20 +90,30 @@ export function ContactsList({
   }, [instanceName, findChats]);
 
   useEffect(() => {
-  const fetchMessagesForChats = async () => {
-    if (!instanceName || chats.length === 0) {
-      return;
-    }
+    const fetchMessagesForChats = async () => {
+      if (!instanceName || chats.length === 0) {
+        return;
+      }
 
-    // Busca as mensagens para todas as conversas em paralelo
-    await Promise.all(
-      chats.map((chat) => findMessages(instanceName, chat.remoteJid))
-    );
-  };
+      setMessagesLoading(true); // Inicia o carregamento das mensagens
 
-  fetchMessagesForChats();
-}, [instanceName, chats, findMessages]);
+      try {
+        // Busca as mensagens para todas as conversas em paralelo
+        await Promise.all(
+          chats.map((chat) => findMessages(instanceName, chat.remoteJid))
+        );
+      } catch (error) {
+        console.error("Erro ao buscar mensagens:", error);
+      } finally {
+        setMessagesLoading(false); // Finaliza o carregamento das mensagens
+      }
+    };
+
+    fetchMessagesForChats();
+  }, [instanceName, chats, findMessages]);
+
   console.log("Estado de mensagens:", messages);
+
   return (
     <div className="h-full whatsapp-sidebar flex flex-col border-r whatsapp-border">
       {/* Header da Sidebar */}
@@ -264,10 +275,14 @@ export function ContactsList({
                 <div className="flex items-center justify-between">
                   <p className="text-sm whatsapp-text-secondary truncate">
                     {(() => {
-                      const lastMessage = messages
-                        .filter((message) => message.key.remoteJid === chat.remoteJid)
-                        .sort((a, b) => b.messageTimestamp - a.messageTimestamp) // Ordena por timestamp
-                        .at(0); // Pega a última mensagem
+                      const filteredMessages = messages.filter(
+                        (message) => message.key.remoteJid === chat.remoteJid
+                      );
+                      console.log(`Mensagens filtradas para ${chat.remoteJid}:`, filteredMessages);
+
+                      const lastMessage = filteredMessages
+                        .sort((a, b) => b.messageTimestamp - a.messageTimestamp)
+                        .at(0);
 
                       return lastMessage?.message.conversation
                         ? lastMessage.message.conversation.slice(0, 20)
