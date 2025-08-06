@@ -307,8 +307,8 @@ useEffect(() => {
           <div className="flex items-center justify-between">
             <p className="text-sm whatsapp-text-secondary truncate">
               {chat.lastMessage?.message.conversation
-                ? chat.lastMessage.message.conversation.slice(0, 20)
-                : "Sem mensagens"}
+                ? `${chat.lastMessage.message.conversation.slice(0, 30)}...`
+                : "Carregando"}
             </p>
           </div>
         </div>
