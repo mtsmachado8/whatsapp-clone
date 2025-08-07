@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useSendMessage } from "@/hooks/use-send-message";
+import { useChat } from "@/context/ChatContext";
 
 interface Contact {
   id: string;
@@ -38,7 +40,6 @@ interface Message {
 }
 
 interface ChatAreaProps {
-  selectedContact: Contact | null;
   messageText: string;
   onMessageChange: (value: string) => void;
   onSendMessage: () => void;
@@ -46,12 +47,53 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({
-  selectedContact,
   messageText,
   onMessageChange,
   onSendMessage,
   onBackToContacts,
 }: ChatAreaProps) {
+  const { selectedContact, setSelectedContact } = useChat();
+  const { sendMessage, loading, error, success } = useSendMessage();
+
+  // Mensagens do contato selecionado vindas do contexto
+  const filteredMessages = (selectedContact?.messages || []).slice().sort(
+  (a: Message, b: Message) => (b.messageTimestamp ?? 0) - (a.messageTimestamp ?? 0)
+);
+
+  // Envio de mensagem usando o hook e atualização local imediata
+  const handleSendMessage = async () => {
+    if (!selectedContact || !messageText.trim()) return;
+
+    // Atualiza localmente para UX instantânea
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      key: {
+        id: Date.now().toString(),
+        fromMe: true,
+        remoteJid: selectedContact.remoteJid,
+      },
+      pushName: "Você",
+      messageType: "text",
+      message: { conversation: messageText },
+      messageTimestamp: Math.floor(Date.now() / 1000),
+    };
+
+    setSelectedContact({
+      ...selectedContact,
+      messages: [...filteredMessages, newMessage],
+    });
+
+    await sendMessage(
+      process.env.NEXT_PUBLIC_INSTANCE_ID || "",
+      {
+        number: selectedContact.remoteJid.split("@")[0],
+        text: messageText,
+      }
+    );
+    onMessageChange(""); // Limpa o campo após envio
+    onSendMessage(); // Mantém funcionalidade original
+  };
+
   if (!selectedContact) {
     return (
       <div className="hidden lg:flex flex-1 items-center justify-center whatsapp-chat-container">
@@ -72,12 +114,6 @@ export function ChatArea({
     );
   }
 
-  // Use as mensagens associadas ao contato selecionado
-  const filteredMessages = selectedContact.messages || [];
-
-  console.log("selectedContact:", selectedContact);
-  console.log("filteredMessages:", filteredMessages);
-
   return (
     <div className="flex flex-col h-full whatsapp-chat-bg">
       {/* Header do Chat */}
@@ -96,7 +132,7 @@ export function ChatArea({
             <AvatarFallback>
               {selectedContact.name
                 .split(" ")
-                .map((n) => n[0])
+                .map((n:string) => n[0])
                 .join("")}
             </AvatarFallback>
           </Avatar>
@@ -114,7 +150,7 @@ export function ChatArea({
         <ScrollArea className="h-full chat-background">
           <div className="p-4 chat-messages">
             <div className="space-y-4">
-              {filteredMessages.map((message) => (
+              {filteredMessages.map((message: Message) => (
                 <div key={message.id} className={`flex ${message.key.fromMe ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
@@ -155,8 +191,9 @@ export function ChatArea({
               placeholder="Digite uma mensagem"
               value={messageText}
               onChange={(e) => onMessageChange(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && onSendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               className="pr-12 rounded-lg whatsapp-sidebar border whatsapp-border whatsapp-text"
+              disabled={loading}
             />
             <Button
               variant="ghost"
@@ -168,13 +205,16 @@ export function ChatArea({
           </div>
 
           <Button
-            onClick={onSendMessage}
+            onClick={handleSendMessage}
             className="bg-green-600 hover:bg-green-700 text-white rounded-full flex-shrink-0"
             size="icon"
+            disabled={loading}
           >
             <Send className="h-4 w-4" />
           </Button>
         </div>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {success && <p className="text-green-500 mt-2">Mensagem enviada!</p>}
       </div>
     </div>
   );
