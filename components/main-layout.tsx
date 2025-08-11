@@ -10,7 +10,7 @@ export function MainLayout() {
   const handleTabChange = useCallback((tab: "messages" | "agents") => {
     setActiveTab(tab)
   }, [])
-
+  console.log("MainLayout renderizou");
   return (
     <div className="flex h-screen whatsapp-bg">
       {/* Menu - Sidebar no desktop, bottom no mobile */}

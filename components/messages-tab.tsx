@@ -6,7 +6,8 @@ import { ChatArea } from "@/components/chat-area"
 import { usePWAInstall } from "@/hooks/use-pwa-install"
 import { contacts } from "@/data/contacts"
 import { messages } from "@/data/messages"
-import type { Contact, FilterType } from "@/types"
+import type { FilterType } from "@/types"
+import type { Contact } from "@/context/ChatContext"
 
 export function MessagesTab() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
@@ -14,7 +15,7 @@ export function MessagesTab() {
   const [searchText, setSearchText] = useState("")
   const [showDownloadDialog, setShowDownloadDialog] = useState(false)
   const [filter, setFilter] = useState<FilterType>("all")
-
+  console.log("MessagesTab renderizou");
   const { isInstallable, isInstalled, installApp, getInstallInstructions } = usePWAInstall()
 
   const handleSendMessage = () => {
@@ -55,7 +56,7 @@ export function MessagesTab() {
     setFilter(newFilter)
   }, [])
 
-  const filteredContacts = contacts.filter((contact) => {
+  const filteredContacts = contacts.filter((contact: Contact) => {
     const matchesSearch = contact.name.toLowerCase().includes(searchText.toLowerCase())
 
     switch (filter) {
@@ -80,7 +81,7 @@ export function MessagesTab() {
             contacts={filteredContacts}
             selectedContact={selectedContact}
             searchText={searchText}
-            onSearchChange={handleSearchTextChange}
+            onMessageChange={handleSearchTextChange}
             onContactSelect={handleContactSelect}
             onDownload={handleDownload}
             showDownloadDialog={showDownloadDialog}
@@ -91,6 +92,7 @@ export function MessagesTab() {
             getInstallInstructions={getInstallInstructions}
             filter={filter}
             onFilterChange={handleFilterChange}
+            instanceId=""
           />
         </div>
 
@@ -123,7 +125,7 @@ export function MessagesTab() {
             contacts={filteredContacts}
             selectedContact={selectedContact}
             searchText={searchText}
-            onSearchChange={handleSearchTextChange}
+            onMessageChange={handleSearchTextChange}
             onContactSelect={handleContactSelect}
             onDownload={handleDownload}
             showDownloadDialog={showDownloadDialog}
@@ -134,6 +136,7 @@ export function MessagesTab() {
             getInstallInstructions={getInstallInstructions}
             filter={filter}
             onFilterChange={handleFilterChange}
+            instanceId=""
           />
         )}
       </div>

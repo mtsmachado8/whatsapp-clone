@@ -24,6 +24,7 @@ interface ChatContextType {
   setSelectedContact: (contact: Contact | null) => void;
   loading: boolean;
   error: string | null;
+  instanceId: string;
 }
 
 const ChatContext = createContext<ChatContextType>({
@@ -32,12 +33,29 @@ const ChatContext = createContext<ChatContextType>({
   setSelectedContact: () => {},
   loading: false,
   error: null,
+  instanceId: "",
 });
 
 export function ChatProvider({ instanceId, children }: { instanceId: string; children: React.ReactNode }) {
-  const { chats: rawChats, findChats, loading, error } = useFindChats();
+  const { chats: rawChats, findChats, findMessagesForChats, loading, error } = useFindChats();
   const [chats, setChats] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  // Busca os chats periodicamente
+  useEffect(() => {
+    if (!instanceId) return;
+    findChats(instanceId);
+    const interval = setInterval(() => {
+      findChats(instanceId);
+    }, 70000);
+    return () => clearInterval(interval);
+  }, [instanceId, findChats]);
+
+  // Busca as mensagens dos chats sempre que os chats mudam
+  useEffect(() => {
+    if (!instanceId || !rawChats.length) return;
+    findMessagesForChats(instanceId);
+  }, [instanceId, rawChats, findMessagesForChats]);
 
   // Mapeia os chats recebidos para o tipo Contact
   useEffect(() => {
@@ -60,24 +78,33 @@ export function ChatProvider({ instanceId, children }: { instanceId: string; chi
       updatedAt: chat.updatedAt,
       messages: chat.messages || [],
     }));
-    setChats(mappedChats);
-  }, [rawChats]);
 
-  useEffect(() => {
-    if (!instanceId) return;
-    findChats(instanceId);
-    const interval = setInterval(() => {
-      findChats(instanceId);
-    }, 7000);
-    return () => clearInterval(interval);
-  }, [instanceId, findChats]);
+    // Só atualiza se mudou de fato
+    const chatsChanged =
+      mappedChats.length !== chats.length ||
+      mappedChats.some((c, i) =>
+        c.updatedAt !== chats[i]?.updatedAt ||
+        c.messages.length !== chats[i]?.messages.length
+      );
+
+    if (chatsChanged) {
+      setChats(mappedChats);
+    }
+  }, [rawChats]);
 
   // Sincroniza selectedContact com chats atualizados
   useEffect(() => {
-  if (!selectedContact) return;
-  const updated = chats.find(chat => chat.remoteJid === selectedContact.remoteJid);
-  if (updated) setSelectedContact({ ...updated }); // força nova referência
-}, [chats]);
+    if (!selectedContact) return;
+    const updated = chats.find(chat => chat.remoteJid === selectedContact.remoteJid);
+    // Só atualiza se mudou de fato
+    if (
+      updated &&
+      (updated.updatedAt !== selectedContact.updatedAt ||
+        updated.messages.length !== selectedContact.messages.length)
+    ) {
+      setSelectedContact(updated);
+    }
+  }, [chats]);
 
   return (
     <ChatContext.Provider value={{
@@ -85,7 +112,8 @@ export function ChatProvider({ instanceId, children }: { instanceId: string; chi
       selectedContact,
       setSelectedContact,
       loading,
-      error
+      error,
+      instanceId: instanceId || "",
     }}>
       {children}
     </ChatContext.Provider>

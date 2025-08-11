@@ -1,21 +1,32 @@
 export interface Contact {
-  id: string
-  name: string
-  avatar: string
-  lastMessage: string
-  time: string
-  unread: number
-  online: boolean
-  typing?: boolean
+  id: string;
+  remoteJid: string;
+  name: string;
+  avatar: string;
+  lastMessage: string;
+  time: string;
+  unread: number;
+  online: boolean;
+  typing?: boolean;
+  profilePicUrl?: string;
+  pushName?: string;
+  updatedAt?: string;
+  messages: Message[];
 }
 
 export interface Message {
-  id: string
-  text: string
-  time: string
-  sent: boolean
-  read: boolean
-  delivered: boolean
+  id: string;
+  key: {
+    id: string;
+    fromMe: boolean;
+    remoteJid: string;
+  };
+  pushName: string;
+  messageType: string;
+  message: {
+    conversation: string;
+  };
+  messageTimestamp: number;
 }
 
 export interface Agent {

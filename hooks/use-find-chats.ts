@@ -43,7 +43,7 @@ export const useFindChats = () => {
   const [messages, setMessages] = useState<Message[]>([]); // Estado para armazenar mensagens
   const [loading, setLoading] = useState<boolean>(false); // Estado de carregamento
   const [error, setError] = useState<string | null>(null); // Estado para erros
-
+  
   // Função para buscar as conversas
   const findChats = useCallback(async (instanceId: string) => {
     if (!instanceId) {

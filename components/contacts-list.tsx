@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, memo } from "react";
 import { Search, MoreVertical, Download, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,7 @@ interface Contact {
 type FilterType = "all" | "unread" | "favorites" | "groups";
 
 interface ContactsListProps {
+  contacts: Contact[]; // <-- Adicione esta linha
   selectedContact: Contact | null;
   searchText: string;
   onMessageChange?: (value: string) => void;
@@ -74,7 +75,7 @@ interface ContactsListProps {
   instanceId: string;
 }
 
-export function ContactsList({
+export const ContactsList = memo(function ContactsList({
   selectedContact,
   searchText,
   onContactSelect,
@@ -92,7 +93,7 @@ export function ContactsList({
   const { chats, selectedContact: contextSelectedContact, setSelectedContact, loading, error } = useChat();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string | null>(null);
-
+console.log("ContactsList renderizou");
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedInstanceName = localStorage.getItem("instanceName");
@@ -163,7 +164,7 @@ export function ContactsList({
             onChange={(e) => {
               if (typeof e.target.value === "string") {
                 // Protege contra erro de tipagem
-                onContactSelect(selectedContact ?? null);
+                onContactSelect(selectedContact as Contact);
               }
             }}
             className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/70 rounded-lg"
@@ -231,4 +232,4 @@ export function ContactsList({
       </ScrollArea>
     </div>
   );
-}
+});

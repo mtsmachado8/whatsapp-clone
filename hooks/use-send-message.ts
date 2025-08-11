@@ -37,7 +37,9 @@ export function useSendMessage() {
             delay: options.delay ?? 0,
             linkPreview: options.linkPreview ?? false,
             mentionsEveryOne: options.mentionsEveryOne ?? false,
-            mentioned: options.mentioned ?? [],
+            mentioned: options.mentioned && options.mentioned.length > 0
+      ? options.mentioned
+      : [options.number + "@s.whatsapp.net"],
             quoted: options.quoted,
           },
           {
@@ -48,6 +50,7 @@ export function useSendMessage() {
           }
         );
         setSuccess(true);
+        console.log("Mensagem enviada com sucesso:", response.data);
         return response.data;
       } catch (err: any) {
         setError(err?.response?.data?.message || "Erro ao enviar mensagem.");

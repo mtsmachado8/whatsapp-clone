@@ -40,6 +40,8 @@ interface Message {
 }
 
 interface ChatAreaProps {
+  selectedContact: Contact | null;
+  messages: Message[];
   messageText: string;
   onMessageChange: (value: string) => void;
   onSendMessage: () => void;
@@ -52,7 +54,7 @@ export function ChatArea({
   onSendMessage,
   onBackToContacts,
 }: ChatAreaProps) {
-  const { selectedContact, setSelectedContact } = useChat();
+  const { selectedContact, setSelectedContact, instanceId } = useChat();
   const { sendMessage, loading, error, success } = useSendMessage();
 
   // Mensagens do contato selecionado vindas do contexto
@@ -84,14 +86,15 @@ export function ChatArea({
     });
 
     await sendMessage(
-      process.env.NEXT_PUBLIC_INSTANCE_ID || "",
+      instanceId,
       {
         number: selectedContact.remoteJid.split("@")[0],
         text: messageText,
       }
     );
-    onMessageChange(""); // Limpa o campo após envio
     onSendMessage(); // Mantém funcionalidade original
+    onMessageChange(""); // Limpa o campo após envio
+    
   };
 
   if (!selectedContact) {
@@ -150,7 +153,7 @@ export function ChatArea({
         <ScrollArea className="h-full chat-background">
           <div className="p-4 chat-messages">
             <div className="space-y-4">
-              {filteredMessages.map((message: Message) => (
+              {filteredMessages.reverse().map((message: Message) => (
                 <div key={message.id} className={`flex ${message.key.fromMe ? "justify-end" : "justify-start"}`}>
                   <div
                     className={`max-w-[85%] sm:max-w-xs lg:max-w-md px-4 py-2 rounded-lg shadow-sm ${
